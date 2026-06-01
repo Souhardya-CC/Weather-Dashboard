@@ -136,9 +136,39 @@
 .saved-locations details summary {
   list-style: none;
   cursor: pointer;
-  color: #cbd5e1;
+  color: #e2e8f0;
   font-weight: 700;
   margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.saved-locations details summary:hover {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.4);
+  transform: translateY(-1px);
+}
+
+.saved-locations details[open] summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.saved-locations summary .chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.saved-locations details[open] summary .chevron {
+  transform: rotate(180deg);
 }
 
 .saved-list {
@@ -170,6 +200,13 @@
   font-weight: 600;
   cursor: pointer;
   padding: 6px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.saved-select:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #f8fafc;
 }
 
 .saved-delete {

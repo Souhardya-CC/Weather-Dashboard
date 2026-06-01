@@ -597,7 +597,7 @@ function App() {
           {savedLocations.length > 0 && (
             <div className="saved-locations">
               <details>
-                <summary>Saved locations ({savedLocations.length})</summary>
+                <summary><span className="summary-text">Saved locations ({savedLocations.length})</span><span className="chevron">▼</span></summary>
                 <ul className="saved-list">
                   {savedLocations.map((item, idx) => (
                     <li key={`${item.label}-${idx}`} className="saved-item">
