@@ -40,6 +40,18 @@ function formatDate(value) {
   })
 }
 
+function getCurrentHumidity(forecastData) {
+  if (!forecastData.hourly?.time || !forecastData.hourly?.relativehumidity_2m || !forecastData.current_weather?.time) {
+    return 0
+  }
+
+  const index = forecastData.hourly.time.findIndex(
+    (time) => time === forecastData.current_weather.time,
+  )
+
+  return index >= 0 ? forecastData.hourly.relativehumidity_2m[index] : 0
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [suggestionTerm, setSuggestionTerm] = useState('')
@@ -194,7 +206,7 @@ function App() {
       const locationLabel =
         label || `${name ? name : 'Current location'}${admin1 ? `, ${admin1}` : ''}${country ? `, ${country}` : ''}`
       const forecastRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&current_weather_units=relative_humidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,relative_humidity_2m_max&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=relativehumidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,relative_humidity_2m_max&timezone=auto`,
       )
       const forecastData = await forecastRes.json()
 
@@ -210,7 +222,7 @@ function App() {
         condition: weatherLabels[forecastData.current_weather.weathercode] ||
           'Unknown',
         time: forecastData.current_weather.time,
-        humidity: forecastData.current_weather.relative_humidity_2m || 0,
+        humidity: getCurrentHumidity(forecastData),
         sunrise: forecastData.daily.sunrise[0],
         sunset: forecastData.daily.sunset[0],
         min: forecastData.daily.temperature_2m_min[0],
@@ -329,7 +341,7 @@ function App() {
       const locationLabel = label || `${name}${admin1 ? `, ${admin1}` : ''}${country ? `, ${country}` : ''}`
 
       const forecastRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&current_weather_units=relative_humidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,relative_humidity_2m_max&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=relativehumidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,relative_humidity_2m_max&timezone=auto`,
       )
       const forecastData = await forecastRes.json()
 
@@ -345,7 +357,7 @@ function App() {
         condition: weatherLabels[forecastData.current_weather.weathercode] ||
           'Unknown',
         time: forecastData.current_weather.time,
-        humidity: forecastData.current_weather.relative_humidity_2m || 0,
+        humidity: getCurrentHumidity(forecastData),
         sunrise: forecastData.daily.sunrise[0],
         sunset: forecastData.daily.sunset[0],
         min: forecastData.daily.temperature_2m_min[0],
