@@ -64,6 +64,7 @@ function App() {
   const [suggestions, setSuggestions] = useState([])
   const [currentCoords, setCurrentCoords] = useState(null)
   const [savedLocations, setSavedLocations] = useState([])
+  const [locationPermission, setLocationPermission] = useState('unknown')
 
   const SAVED_KEY = 'weather_dashboard_saved_locations_v1'
 
@@ -293,6 +294,9 @@ function App() {
 
   const handleSelectSaved = (item) => {
     // trigger search by coords for saved item
+    const input = document.getElementById('search')
+    if (input) input.blur()
+    setSuggestions([])
     searchWeatherByCoords(item)
   }
 
@@ -444,35 +448,69 @@ function App() {
   }
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      searchWeather(query)
-      return
-    }
-
-    const handleSuccess = ({ coords }) => {
-      const fetchCurrentWeather = async () => {
-        const label = await reverseGeocode(coords.latitude, coords.longitude)
-        searchWeatherByCoords({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          label,
-          suppressSave: true,
-        })
+    const doRequest = async () => {
+      if (!navigator.geolocation) {
+        searchWeather(query)
+        return
       }
 
-      fetchCurrentWeather()
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const status = await navigator.permissions.query({ name: 'geolocation' })
+          setLocationPermission(status.state)
+          if (status.state === 'denied') {
+            searchWeather(query)
+            return
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      const handleSuccess = ({ coords }) => {
+        const fetchCurrentWeather = async () => {
+          const label = await reverseGeocode(coords.latitude, coords.longitude)
+          searchWeatherByCoords({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            label,
+            suppressSave: true,
+          })
+        }
+
+        fetchCurrentWeather()
+      }
+
+      const handleError = () => {
+        setLocationPermission('denied')
+        searchWeather(query)
+      }
+
+      navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0,
+      })
     }
 
-    const handleError = () => {
-      searchWeather(query)
-    }
-
-    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-      enableHighAccuracy: true,
-      timeout: 8000,
-      maximumAge: 300000,
-    })
+    doRequest()
   }, [])
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) return
+    setLocationPermission('prompt')
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        setLocationPermission('granted')
+        const label = await reverseGeocode(coords.latitude, coords.longitude)
+        searchWeatherByCoords({ latitude: coords.latitude, longitude: coords.longitude, label, suppressSave: true })
+      },
+      (err) => {
+        setLocationPermission('denied')
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+    )
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -511,13 +549,19 @@ function App() {
               }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
+                  event.currentTarget.blur()
+                  setSuggestions([])
                   searchWeather(query)
                 }
               }}
               aria-autocomplete="list"
               aria-controls="location-suggestions"
             />
-            <button type="button" onClick={() => searchWeather(query)}>
+            <button type="button" onClick={() => {
+              document.getElementById('search').blur()
+              setSuggestions([])
+              searchWeather(query)
+            }}>
               Search
             </button>
           </div>
@@ -530,6 +574,7 @@ function App() {
                   role="option"
                   onMouseDown={(event) => {
                     event.preventDefault()
+                    document.getElementById('search').blur()
                     setQuery(item.label)
                     setSuggestionTerm('')
                     setSuggestions([])
@@ -541,6 +586,14 @@ function App() {
               ))}
             </ul>
           )}
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="loc-btn" onClick={requestLocation}>
+              📍 Use my location
+            </button>
+            {locationPermission === 'denied' && (
+              <div className="loc-notice">Location blocked. Enable in browser site settings.</div>
+            )}
+          </div>
           {savedLocations.length > 0 && (
             <div className="saved-locations">
               <details>

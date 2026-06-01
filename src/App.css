@@ -81,6 +81,31 @@
   box-shadow: 0 12px 24px rgba(124, 58, 237, 0.28);
 }
 
+.loc-btn {
+  min-width: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  background: #111827;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 16px;
+  min-height: 52px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.loc-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+
+.loc-notice {
+  margin-top: 8px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
 .suggestion-list {
   margin: 12px 0 0;
   padding: 8px 0;
