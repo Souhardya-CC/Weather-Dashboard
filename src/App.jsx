@@ -32,6 +32,83 @@ const weatherLabels = {
   99: 'Thunderstorm with heavy hail',
 }
 
+const weatherIcons = {
+  0: '☀️',
+  1: '🌤️',
+  2: '⛅',
+  3: '☁️',
+  45: '🌫️',
+  48: '🌫️',
+  51: '🌦️',
+  53: '🌦️',
+  55: '🌧️',
+  56: '🌧️',
+  57: '🌧️',
+  61: '🌧️',
+  63: '🌧️',
+  65: '🌧️',
+  66: '🌧️',
+  67: '🌧️',
+  71: '🌨️',
+  73: '🌨️',
+  75: '🌨️',
+  77: '🌨️',
+  80: '🌦️',
+  81: '🌧️',
+  82: '⛈️',
+  85: '🌨️',
+  86: '🌨️',
+  95: '⛈️',
+  96: '⛈️',
+  99: '⛈️',
+}
+
+const weatherNightIcons = {
+  0: '🌙',
+  1: '🌙',
+  2: '🌙',
+  3: '☁️',
+  45: '🌫️',
+  48: '🌫️',
+  51: '🌧️',
+  53: '🌧️',
+  55: '🌧️',
+  56: '🌧️',
+  57: '🌧️',
+  61: '🌧️',
+  63: '🌧️',
+  65: '🌧️',
+  66: '🌧️',
+  67: '🌧️',
+  71: '🌨️',
+  73: '🌨️',
+  75: '🌨️',
+  77: '🌨️',
+  80: '🌧️',
+  81: '🌧️',
+  82: '⛈️',
+  85: '🌨️',
+  86: '🌨️',
+  95: '⛈️',
+  96: '⛈️',
+  99: '⛈️',
+}
+
+function isNightTime(time, sunrise, sunset) {
+  if (!time || !sunrise || !sunset) return false
+  const current = new Date(time).getTime()
+  const start = new Date(sunrise).getTime()
+  const end = new Date(sunset).getTime()
+  return current < start || current >= end
+}
+
+function getWeatherIcon(code, night) {
+  if (night) {
+    return weatherNightIcons[code] || weatherIcons[code] || '🌈'
+  }
+  return weatherIcons[code] || '🌈'
+}
+
 function formatDate(value) {
   return new Date(value).toLocaleDateString(undefined, {
     weekday: 'short',
@@ -241,6 +318,11 @@ function App() {
         throw new Error('Weather service returned incomplete data.')
       }
 
+      const currentTime = forecastData.current_weather.time
+      const currentSunrise = forecastData.daily.sunrise[0]
+      const currentSunset = forecastData.daily.sunset[0]
+      const night = isNightTime(currentTime, currentSunrise, currentSunset)
+
       setLocation(locationLabel)
       setCurrentCoords({ latitude, longitude })
       // save location (deduplicated)
@@ -251,10 +333,11 @@ function App() {
         windDirection: forecastData.current_weather.winddirection,
         condition: weatherLabels[forecastData.current_weather.weathercode] ||
           'Unknown',
-        time: forecastData.current_weather.time,
+        icon: getWeatherIcon(forecastData.current_weather.weathercode, night),
+        time: currentTime,
         humidity: getCurrentHumidity(forecastData),
-        sunrise: forecastData.daily.sunrise[0],
-        sunset: forecastData.daily.sunset[0],
+        sunrise: currentSunrise,
+        sunset: currentSunset,
         min: forecastData.daily.temperature_2m_min[0],
         max: forecastData.daily.temperature_2m_max[0],
       })
@@ -265,6 +348,8 @@ function App() {
         max: forecastData.daily.temperature_2m_max[index],
         condition:
           weatherLabels[forecastData.daily.weathercode[index]] || 'Unknown',
+        icon:
+          weatherIcons[forecastData.daily.weathercode[index]] || '🌈',
         humidity: forecastData.daily.relative_humidity_2m_max[index] || 0,
         sunrise: forecastData.daily.sunrise[index],
         sunset: forecastData.daily.sunset[index],
@@ -406,6 +491,11 @@ function App() {
         throw new Error('Weather service returned incomplete data.')
       }
 
+      const currentTime = forecastData.current_weather.time
+      const currentSunrise = forecastData.daily.sunrise[0]
+      const currentSunset = forecastData.daily.sunset[0]
+      const night = isNightTime(currentTime, currentSunrise, currentSunset)
+
       setLocation(locationLabel)
       setCurrentCoords({ latitude, longitude })
       // save typed search locations
@@ -416,10 +506,11 @@ function App() {
         windDirection: forecastData.current_weather.winddirection,
         condition: weatherLabels[forecastData.current_weather.weathercode] ||
           'Unknown',
-        time: forecastData.current_weather.time,
+        icon: getWeatherIcon(forecastData.current_weather.weathercode, night),
+        time: currentTime,
         humidity: getCurrentHumidity(forecastData),
-        sunrise: forecastData.daily.sunrise[0],
-        sunset: forecastData.daily.sunset[0],
+        sunrise: currentSunrise,
+        sunset: currentSunset,
         min: forecastData.daily.temperature_2m_min[0],
         max: forecastData.daily.temperature_2m_max[0],
       })
@@ -430,6 +521,8 @@ function App() {
         max: forecastData.daily.temperature_2m_max[index],
         condition:
           weatherLabels[forecastData.daily.weathercode[index]] || 'Unknown',
+        icon:
+          weatherIcons[forecastData.daily.weathercode[index]] || '🌈',
         humidity: forecastData.daily.relative_humidity_2m_max[index] || 0,
         sunrise: forecastData.daily.sunrise[index],
         sunset: forecastData.daily.sunset[index],
@@ -624,7 +717,10 @@ function App() {
           <div className="current-header">
             <div>
               <p className="location-label">{location}</p>
-              <h2>{current.condition}</h2>
+              <h2>
+                <span className="weather-icon" aria-hidden="true">{current.icon}</span>
+                {current.condition}
+              </h2>
               <p className="weather-time">
                 Updated at {new Date(current.time).toLocaleTimeString([], {
                   hour: '2-digit',
@@ -698,7 +794,10 @@ function App() {
                 >
                   <div className="forecast-header">
                     <p className="forecast-day">{formatDate(day.date)}</p>
-                    <p className="forecast-condition">{day.condition}</p>
+                    <p className="forecast-condition">
+                      <span className="forecast-icon" aria-hidden="true">{day.icon}</span>
+                      {day.condition}
+                    </p>
                     <div className="forecast-temps">
                       <span className="high">{Math.round(day.max)}°</span>
                       <span className="low">{Math.round(day.min)}°</span>
