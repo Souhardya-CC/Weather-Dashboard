@@ -194,7 +194,7 @@ function App() {
       const locationLabel =
         label || `${name ? name : 'Current location'}${admin1 ? `, ${admin1}` : ''}${country ? `, ${country}` : ''}`
       const forecastRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&current_weather_units=relative_humidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,relative_humidity_2m_max&timezone=auto`,
       )
       const forecastData = await forecastRes.json()
 
@@ -210,6 +210,7 @@ function App() {
         condition: weatherLabels[forecastData.current_weather.weathercode] ||
           'Unknown',
         time: forecastData.current_weather.time,
+        humidity: forecastData.current_weather.relative_humidity_2m || 0,
         sunrise: forecastData.daily.sunrise[0],
         sunset: forecastData.daily.sunset[0],
         min: forecastData.daily.temperature_2m_min[0],
@@ -222,6 +223,7 @@ function App() {
         max: forecastData.daily.temperature_2m_max[index],
         condition:
           weatherLabels[forecastData.daily.weathercode[index]] || 'Unknown',
+        humidity: forecastData.daily.relative_humidity_2m_max[index] || 0,
         sunrise: forecastData.daily.sunrise[index],
         sunset: forecastData.daily.sunset[index],
       }))
@@ -327,7 +329,7 @@ function App() {
       const locationLabel = label || `${name}${admin1 ? `, ${admin1}` : ''}${country ? `, ${country}` : ''}`
 
       const forecastRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&current_weather_units=relative_humidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,relative_humidity_2m_max&timezone=auto`,
       )
       const forecastData = await forecastRes.json()
 
@@ -343,6 +345,7 @@ function App() {
         condition: weatherLabels[forecastData.current_weather.weathercode] ||
           'Unknown',
         time: forecastData.current_weather.time,
+        humidity: forecastData.current_weather.relative_humidity_2m || 0,
         sunrise: forecastData.daily.sunrise[0],
         sunset: forecastData.daily.sunset[0],
         min: forecastData.daily.temperature_2m_min[0],
@@ -355,6 +358,7 @@ function App() {
         max: forecastData.daily.temperature_2m_max[index],
         condition:
           weatherLabels[forecastData.daily.weathercode[index]] || 'Unknown',
+        humidity: forecastData.daily.relative_humidity_2m_max[index] || 0,
         sunrise: forecastData.daily.sunrise[index],
         sunset: forecastData.daily.sunset[index],
       }))
@@ -507,6 +511,10 @@ function App() {
               <strong>{Math.round(current.windDirection)}°</strong>
             </div>
             <div>
+              <span>Humidity</span>
+              <strong>{Math.round(current.humidity)}%</strong>
+            </div>
+            <div>
               <span>Sunrise</span>
               <strong>{new Date(current.sunrise).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -575,6 +583,10 @@ function App() {
                       <div>
                         <span>Temperature range</span>
                         <strong>{Math.round(day.min)}° – {Math.round(day.max)}°</strong>
+                      </div>
+                      <div>
+                        <span>Humidity</span>
+                        <strong>{Math.round(day.humidity)}%</strong>
                       </div>
                     </div>
                   )}
