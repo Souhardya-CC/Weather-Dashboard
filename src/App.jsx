@@ -62,6 +62,32 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [suggestions, setSuggestions] = useState([])
+  const [currentCoords, setCurrentCoords] = useState(null)
+  const [savedLocations, setSavedLocations] = useState([])
+
+  const SAVED_KEY = 'weather_dashboard_saved_locations_v1'
+
+  const isSameCoords = (aLat, aLon, bLat, bLon) => {
+    const latDiff = Math.abs(Number(aLat) - Number(bLat))
+    const lonDiff = Math.abs(Number(aLon) - Number(bLon))
+    return latDiff < 0.0005 && lonDiff < 0.0005
+  }
+
+  const saveLocation = (item, { suppress = false } = {}) => {
+    if (suppress) return
+    try {
+      const stored = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
+      const exists = stored.find((s) => isSameCoords(s.latitude, s.longitude, item.latitude, item.longitude) || (s.label && item.label && s.label === item.label))
+      if (!exists) {
+        stored.unshift({ label: item.label, latitude: item.latitude, longitude: item.longitude })
+        if (stored.length > 30) stored.pop()
+        localStorage.setItem(SAVED_KEY, JSON.stringify(stored))
+        setSavedLocations(stored)
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+  }
 
   const fetchLocationSuggestions = async (search, signal) => {
     if (!search) {
@@ -196,7 +222,7 @@ function App() {
     }
   }
 
-  const searchWeatherByCoords = async ({ latitude, longitude, name, country, admin1, label }) => {
+  const searchWeatherByCoords = async ({ latitude, longitude, name, country, admin1, label, suppressSave = false }) => {
     if (latitude == null || longitude == null) return
     setError('')
     setLoading(true)
@@ -215,6 +241,9 @@ function App() {
       }
 
       setLocation(locationLabel)
+      setCurrentCoords({ latitude, longitude })
+      // save location (deduplicated)
+      saveLocation({ label: locationLabel, latitude, longitude }, { suppress: suppressSave })
       setCurrent({
         temperature: forecastData.current_weather.temperature,
         windSpeed: forecastData.current_weather.windspeed,
@@ -250,6 +279,30 @@ function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // load saved locations on mount
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
+      if (Array.isArray(stored)) setSavedLocations(stored)
+    } catch (e) {
+      // ignore
+    }
+  }, [])
+
+  const handleSelectSaved = (item) => {
+    // trigger search by coords for saved item
+    searchWeatherByCoords(item)
+  }
+
+  const handleDeleteSaved = (index) => {
+    const copy = [...savedLocations]
+    copy.splice(index, 1)
+    setSavedLocations(copy)
+    try {
+      localStorage.setItem(SAVED_KEY, JSON.stringify(copy))
+    } catch (e) {}
   }
 
   const searchWeather = async (search) => {
@@ -350,6 +403,9 @@ function App() {
       }
 
       setLocation(locationLabel)
+      setCurrentCoords({ latitude, longitude })
+      // save typed search locations
+      saveLocation({ label: locationLabel, latitude, longitude })
       setCurrent({
         temperature: forecastData.current_weather.temperature,
         windSpeed: forecastData.current_weather.windspeed,
@@ -400,6 +456,7 @@ function App() {
           latitude: coords.latitude,
           longitude: coords.longitude,
           label,
+          suppressSave: true,
         })
       }
 
@@ -483,6 +540,25 @@ function App() {
                 </li>
               ))}
             </ul>
+          )}
+          {savedLocations.length > 0 && (
+            <div className="saved-locations">
+              <details>
+                <summary>Saved locations ({savedLocations.length})</summary>
+                <ul className="saved-list">
+                  {savedLocations.map((item, idx) => (
+                    <li key={`${item.label}-${idx}`} className="saved-item">
+                      <button type="button" className="saved-select" onClick={() => handleSelectSaved(item)}>
+                        {item.label}
+                      </button>
+                      <button type="button" className="saved-delete" onClick={() => handleDeleteSaved(idx)} aria-label={`Delete ${item.label}`}>
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
           )}
         </div>
       </header>

@@ -104,6 +104,58 @@
   color: #f8fafc;
 }
 
+.saved-locations {
+  margin-top: 12px;
+}
+
+.saved-locations details summary {
+  list-style: none;
+  cursor: pointer;
+  color: #cbd5e1;
+  font-weight: 700;
+  margin: 0;
+}
+
+.saved-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.saved-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: rgba(30, 41, 59, 0.9);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.saved-select {
+  flex: 1;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+.saved-delete {
+  border: none;
+  background: rgba(220, 38, 38, 0.1);
+  color: #fecaca;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .alert {
   padding: 18px 22px;
   border-radius: 18px;
