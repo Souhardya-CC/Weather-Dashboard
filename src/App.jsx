@@ -42,6 +42,7 @@ function formatDate(value) {
 
 function App() {
   const [query, setQuery] = useState('')
+  const [suggestionTerm, setSuggestionTerm] = useState('')
   const [location, setLocation] = useState(null)
   const [current, setCurrent] = useState(null)
   const [forecast, setForecast] = useState([])
@@ -56,23 +57,90 @@ function App() {
       return
     }
 
-    try {
+    const fetchOpenMeteoResults = async (query) => {
       const geoRes = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-          search,
+          query,
         )}&count=5`,
         { signal },
       )
       const geoData = await geoRes.json()
+      return geoData.results || []
+    }
 
-      if (!geoData.results || geoData.results.length === 0) {
+    const fetchNominatimResults = async (query) => {
+      const nomRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          query,
+        )}&format=jsonv2&limit=5&accept-language=en`,
+        { signal },
+      )
+      const nomData = await nomRes.json()
+      if (!Array.isArray(nomData)) {
+        return []
+      }
+      return nomData.map((item) => {
+        const address = item.address || {}
+        const name = item.name || address.city || address.town || address.village || address.hamlet || address.county || address.state || address.country || item.display_name
+        return {
+          name,
+          country: address.country || '',
+          admin1: address.state || address.county || '',
+          latitude: Number(item.lat),
+          longitude: Number(item.lon),
+          label: item.display_name,
+        }
+      })
+    }
+
+    const fetchGeoResults = async (query) => {
+      const openMeteoResults = await fetchOpenMeteoResults(query)
+      if (openMeteoResults.length > 0) {
+        return openMeteoResults
+      }
+      return await fetchNominatimResults(query)
+    }
+
+    const buildFallbackQueries = (query) => {
+      const cleaned = query.trim()
+      const queries = []
+      if (cleaned.includes(',')) {
+        const parts = cleaned.split(',').map((part) => part.trim()).filter(Boolean)
+        if (parts.length >= 2) {
+          queries.push(parts.slice(0, 2).join(', '))
+        }
+        if (parts.length >= 1) {
+          queries.push(parts[0])
+        }
+      }
+      const words = cleaned.split(/\s+/).filter(Boolean)
+      if (words.length > 1) {
+        queries.push(words.slice(1).join(' '))
+        queries.push(words.slice(0, words.length - 1).join(' '))
+        queries.push(words[words.length - 1])
+      }
+      return Array.from(new Set(queries.filter(Boolean)))
+    }
+
+    try {
+      let results = await fetchGeoResults(search)
+      if (!results || results.length === 0) {
+        for (const fallback of buildFallbackQueries(search)) {
+          results = await fetchGeoResults(fallback)
+          if (results && results.length > 0) {
+            break
+          }
+        }
+      }
+
+      if (!results || results.length === 0) {
         setSuggestions([])
         return
       }
 
       setSuggestions(
-        geoData.results.map(({ name, country, admin1, latitude, longitude }) => ({
-          label: `${name}${admin1 ? `, ${admin1}` : ''}, ${country}`,
+        results.map(({ name, country, admin1, latitude, longitude, label }) => ({
+          label: label || `${name}${admin1 ? `, ${admin1}` : ''}${country ? `, ${country}` : ''}`,
           latitude,
           longitude,
           name,
@@ -176,21 +244,87 @@ function App() {
     setLoading(true)
     setSuggestions([])
 
-    try {
+    const fetchOpenMeteoResults = async (query) => {
       const geoRes = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-          search,
+          query,
         )}&count=5`,
       )
       const geoData = await geoRes.json()
+      return geoData.results || []
+    }
 
-      if (!geoData.results || geoData.results.length === 0) {
+    const fetchNominatimResults = async (query) => {
+      const nomRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          query,
+        )}&format=jsonv2&limit=5&accept-language=en`,
+      )
+      const nomData = await nomRes.json()
+      if (!Array.isArray(nomData)) {
+        return []
+      }
+      return nomData.map((item) => {
+        const address = item.address || {}
+        const name = item.name || address.city || address.town || address.village || address.hamlet || address.county || address.state || address.country || item.display_name
+        return {
+          name,
+          country: address.country || '',
+          admin1: address.state || address.county || '',
+          latitude: Number(item.lat),
+          longitude: Number(item.lon),
+          label: item.display_name,
+        }
+      })
+    }
+
+    const fetchGeoResults = async (query) => {
+      const openMeteoResults = await fetchOpenMeteoResults(query)
+      if (openMeteoResults.length > 0) {
+        return openMeteoResults
+      }
+      return await fetchNominatimResults(query)
+    }
+
+    const buildFallbackQueries = (query) => {
+      const cleaned = query.trim()
+      const queries = []
+      if (cleaned.includes(',')) {
+        const parts = cleaned.split(',').map((part) => part.trim()).filter(Boolean)
+        if (parts.length >= 2) {
+          queries.push(parts.slice(0, 2).join(', '))
+        }
+        if (parts.length >= 1) {
+          queries.push(parts[0])
+        }
+      }
+      const words = cleaned.split(/\s+/).filter(Boolean)
+      if (words.length > 1) {
+        queries.push(words.slice(1).join(' '))
+        queries.push(words.slice(0, words.length - 1).join(' '))
+        queries.push(words[words.length - 1])
+      }
+      return Array.from(new Set(queries.filter(Boolean)))
+    }
+
+    try {
+      let results = await fetchGeoResults(search)
+      if (!results || results.length === 0) {
+        for (const fallback of buildFallbackQueries(search)) {
+          results = await fetchGeoResults(fallback)
+          if (results && results.length > 0) {
+            break
+          }
+        }
+      }
+
+      if (!results || results.length === 0) {
         throw new Error('Location not found. Try another city or place.')
       }
 
-      const bestMatch = geoData.results[0]
-      const { latitude, longitude, name, country, admin1 } = bestMatch
-      const locationLabel = `${name}${admin1 ? `, ${admin1}` : ''}, ${country}`
+      const bestMatch = results[0]
+      const { latitude, longitude, name, country, admin1, label } = bestMatch
+      const locationLabel = label || `${name}${admin1 ? `, ${admin1}` : ''}${country ? `, ${country}` : ''}`
 
       const forecastRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto`,
@@ -246,9 +380,6 @@ function App() {
     const handleSuccess = ({ coords }) => {
       const fetchCurrentWeather = async () => {
         const label = await reverseGeocode(coords.latitude, coords.longitude)
-        if (label) {
-          setQuery(label)
-        }
         searchWeatherByCoords({
           latitude: coords.latitude,
           longitude: coords.longitude,
@@ -273,20 +404,24 @@ function App() {
   useEffect(() => {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
-      fetchLocationSuggestions(query, controller.signal)
+      if (suggestionTerm.trim().length > 0) {
+        fetchLocationSuggestions(suggestionTerm, controller.signal)
+      } else {
+        setSuggestions([])
+      }
     }, 300)
 
     return () => {
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [query])
+  }, [suggestionTerm])
 
   return (
     <div className="app-container">
       <header className="app-header">
         <div>
-          <p className="eyebrow">Weather Forecast</p>
+          <p className="eyebrow">Nimbus</p>
           <h1>Search any location for live weather</h1>
         </div>
         <div className="search-panel">
@@ -297,7 +432,10 @@ function App() {
               type="search"
               value={query}
               placeholder="Enter city, town, or region"
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setSuggestionTerm(event.target.value)
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   searchWeather(query)
@@ -320,6 +458,8 @@ function App() {
                   onMouseDown={(event) => {
                     event.preventDefault()
                     setQuery(item.label)
+                    setSuggestionTerm('')
+                    setSuggestions([])
                     searchWeatherByCoords(item)
                   }}
                 >
