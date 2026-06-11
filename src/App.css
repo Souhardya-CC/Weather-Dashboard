@@ -508,4 +508,8 @@
   .current-temperature {
     font-size: clamp(2.5rem, 10vw, 4rem);
   }
+
+  .current-weather-card h2 {
+    font-size: 1.5rem;
+  }
 }
